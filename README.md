@@ -78,9 +78,23 @@ labels — rather than taken on faith.
 
 1. Download the `.pkg` from [Releases](../../releases/latest) and install it
    (double-click, enter your admin password).
-   - The package is unsigned/un-notarized. If Gatekeeper complains about an
-     "unidentified developer", right-click → **Open** instead of
-     double-clicking.
+   - The package is unsigned/un-notarized, so Gatekeeper will likely block
+     it ("Apple could not verify that this app is free of malware"). On
+     current macOS, right-click → Open often no longer offers a bypass
+     either — the dialog just offers "Move to Trash" / "Done". Two ways
+     around it:
+     - **System Settings:** Open *System Settings → Privacy & Security*,
+       scroll down — it shows a note that `NiimbotB1ProDriver.pkg` was
+       blocked, with an **Open Anyway** button. Click it, then
+       double-click the installer again.
+     - **Terminal (faster):** remove the quarantine flag directly (safe for
+       a file you got from this repo's own releases):
+       ```bash
+       xattr -d com.apple.quarantine ~/Downloads/NiimbotB1ProDriver.pkg
+       ```
+       (adjust the path if it's not in `~/Downloads`). No output means it
+       worked — `xattr -d` is silent on success. Then double-click as
+       normal.
 2. Dependency: [Poppler](https://poppler.freedesktop.org/) (for `pdftoppm`).
    The installer checks for this automatically and shows a native alert if
    it's missing:
