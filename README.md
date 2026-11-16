@@ -91,6 +91,28 @@ labels — rather than taken on faith.
 3. Plug in the printer via USB. It should then appear as "Niimbot B1 Pro"
    under **System Settings → Printers & Scanners**.
 
+## Reinstalling, updating, uninstalling
+
+Every install uses the same fixed paths (same venv, same backend file, same
+CUPS queue name), so running the installer multiple times never leaves
+duplicate copies behind — each run just overwrites the same files in place.
+
+The installer does track which version is currently installed
+(`/usr/local/niimbot-cups/VERSION`) and shows a dialog telling you what
+happened:
+- fresh install → "Version X.Y was installed"
+- same version already installed → it skips reinstalling anything (no venv
+  rebuild, no pip reinstall, no CUPS requery) and just tells you nothing
+  changed
+- older version found → "Updated from X.Y to X.Z"
+
+To fully remove the driver (CUPS queue, backend, venv, PPD, and the
+installer receipt):
+
+```bash
+sudo ./scripts/uninstall.sh
+```
+
 ## Building from source
 
 ```bash

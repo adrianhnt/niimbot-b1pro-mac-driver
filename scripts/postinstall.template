@@ -8,10 +8,19 @@ BACKEND_DEST="/usr/libexec/cups/backend/niimbot"
 PPD_SRC="/Library/Printers/Niimbot/NiimbotB1Pro.ppd"
 PRINTER_NAME="NiimbotB1Pro"
 DEVICE_URI="niimbot:/dev/cu.usbmodem101"
+NEW_VERSION="__NIIMBOT_VERSION__"
+STATE_FILE="/tmp/niimbot-install-state"
 
 LOG=/tmp/niimbot-cups-install.log
 exec > "$LOG" 2>&1
 echo "== Niimbot CUPS Treiber: Installation $(date) =="
+
+OLD_VERSION=""
+if [ -f "$STATE_FILE" ]; then
+  # von preinstall geschrieben: OLD_VERSION=..., NEW_VERSION=...
+  # shellcheck disable=SC1090
+  source "$STATE_FILE"
+fi
 
 find_bin() {
   # $1 = Programmname, Rest = zusaetzliche feste Pfade
@@ -56,6 +65,20 @@ check_dependencies() {
   fi
 }
 
+if [ -n "$OLD_VERSION" ] && [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
+  echo "Version $NEW_VERSION ist bereits installiert (gleiche Version) -> ueberspringe Neuinstallation."
+  show_gui_alert "Niimbot-Treiber" \
+    "Version $NEW_VERSION ist bereits installiert. Es wurde nichts veraendert."
+  rm -f "$STATE_FILE"
+  exit 0
+fi
+
+if [ -n "$OLD_VERSION" ]; then
+  echo "Update erkannt: $OLD_VERSION -> $NEW_VERSION"
+else
+  echo "Erstinstallation (Version $NEW_VERSION)"
+fi
+
 echo "-- venv erstellen --"
 if [ ! -d "$INSTALL_DIR/venv" ]; then
   /usr/bin/python3 -m venv "$INSTALL_DIR/venv"
@@ -83,6 +106,15 @@ cupsaccept "$PRINTER_NAME" || true
 
 echo "-- Abhaengigkeiten pruefen --"
 check_dependencies
+
+echo "$NEW_VERSION" > "$INSTALL_DIR/VERSION"
+
+if [ -z "$OLD_VERSION" ]; then
+  show_gui_alert "Niimbot-Treiber" "Version $NEW_VERSION wurde installiert."
+else
+  show_gui_alert "Niimbot-Treiber" "Update von Version $OLD_VERSION auf $NEW_VERSION abgeschlossen."
+fi
+rm -f "$STATE_FILE"
 
 echo "== Fertig =="
 exit 0

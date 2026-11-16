@@ -1,0 +1,22 @@
+#!/bin/bash
+# Laeuft automatisch, mit Root-Rechten, VOR der .pkg-Installation.
+# Merkt sich die zuvor installierte Version (falls vorhanden), damit
+# postinstall weiss, ob es sich um eine Erstinstallation, ein Update oder
+# eine Neuinstallation derselben Version handelt.
+set -e
+
+NEW_VERSION="__NIIMBOT_VERSION__"
+VERSION_FILE="/usr/local/niimbot-cups/VERSION"
+STATE_FILE="/tmp/niimbot-install-state"
+
+OLD_VERSION=""
+if [ -f "$VERSION_FILE" ]; then
+  OLD_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE" 2>/dev/null || true)"
+fi
+
+{
+  echo "OLD_VERSION=$OLD_VERSION"
+  echo "NEW_VERSION=$NEW_VERSION"
+} > "$STATE_FILE"
+
+exit 0
