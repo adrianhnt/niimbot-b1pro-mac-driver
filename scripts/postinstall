@@ -1,0 +1,88 @@
+#!/bin/bash
+# Laeuft automatisch, mit Root-Rechten, waehrend der .pkg-Installation.
+set -e
+
+INSTALL_DIR="/usr/local/niimbot-cups"
+BACKEND_SRC="$INSTALL_DIR/niimbot_backend.py"
+BACKEND_DEST="/usr/libexec/cups/backend/niimbot"
+PPD_SRC="/Library/Printers/Niimbot/NiimbotB1Pro.ppd"
+PRINTER_NAME="NiimbotB1Pro"
+DEVICE_URI="niimbot:/dev/cu.usbmodem101"
+
+LOG=/tmp/niimbot-cups-install.log
+exec > "$LOG" 2>&1
+echo "== Niimbot CUPS Treiber: Installation $(date) =="
+
+find_bin() {
+  # $1 = Programmname, Rest = zusaetzliche feste Pfade
+  local name="$1"; shift
+  for p in "$@"; do
+    [ -x "$p" ] && { echo "$p"; return 0; }
+  done
+  command -v "$name" 2>/dev/null
+}
+
+show_gui_alert() {
+  # Zeigt einen Dialog im Fenster des eingeloggten Benutzers (postinstall laeuft als root).
+  local title="$1" message="$2"
+  local console_user console_uid
+  console_user=$(stat -f%Su /dev/console 2>/dev/null || echo "")
+  [ -z "$console_user" ] || [ "$console_user" = "root" ] && return 0
+  console_uid=$(id -u "$console_user" 2>/dev/null) || return 0
+  launchctl asuser "$console_uid" sudo -u "$console_user" osascript \
+    -e "display dialog \"${message}\" with title \"${title}\" buttons {\"OK\"} with icon caution" \
+    >/dev/null 2>&1 || true
+}
+
+check_dependencies() {
+  local brew_bin pdftoppm_bin
+  brew_bin=$(find_bin brew /opt/homebrew/bin/brew /usr/local/bin/brew)
+  pdftoppm_bin=$(find_bin pdftoppm /opt/homebrew/bin/pdftoppm /usr/local/bin/pdftoppm /opt/local/bin/pdftoppm)
+
+  if [ -n "$pdftoppm_bin" ]; then
+    echo "pdftoppm gefunden: $pdftoppm_bin"
+    return 0
+  fi
+
+  echo "WARNUNG: pdftoppm (Poppler) nicht gefunden."
+  if [ -n "$brew_bin" ]; then
+    echo "Homebrew gefunden unter $brew_bin -> bitte ausfuehren: brew install poppler"
+    show_gui_alert "Niimbot-Treiber: zusätzliche Software nötig" \
+      "Der Treiber ist installiert, braucht aber noch 'poppler' zum Drucken.\n\nBitte im Terminal ausführen:\nbrew install poppler"
+  else
+    echo "Homebrew nicht gefunden -> zuerst https://brew.sh installieren, danach: brew install poppler"
+    show_gui_alert "Niimbot-Treiber: zusätzliche Software nötig" \
+      "Der Treiber ist installiert, braucht aber noch 'Homebrew' und 'poppler' zum Drucken.\n\n1. Homebrew installieren: https://brew.sh\n2. Danach im Terminal: brew install poppler"
+  fi
+}
+
+echo "-- venv erstellen --"
+if [ ! -d "$INSTALL_DIR/venv" ]; then
+  /usr/bin/python3 -m venv "$INSTALL_DIR/venv"
+fi
+"$INSTALL_DIR/venv/bin/pip" install -q --upgrade pip
+"$INSTALL_DIR/venv/bin/pip" install -q pyserial Pillow
+
+echo "-- Backend installieren --"
+cp "$BACKEND_SRC" "$BACKEND_DEST"
+chown root:wheel "$BACKEND_DEST"
+chmod 755 "$BACKEND_DEST"
+
+echo "-- Druckerwarteschlange registrieren --"
+if lpstat -p "$PRINTER_NAME" >/dev/null 2>&1; then
+  lpadmin -x "$PRINTER_NAME" || true
+fi
+lpadmin -p "$PRINTER_NAME" \
+  -E \
+  -v "$DEVICE_URI" \
+  -P "$PPD_SRC" \
+  -D "Niimbot B1 Pro (USB)"
+
+cupsenable "$PRINTER_NAME" || true
+cupsaccept "$PRINTER_NAME" || true
+
+echo "-- Abhaengigkeiten pruefen --"
+check_dependencies
+
+echo "== Fertig =="
+exit 0

@@ -1,0 +1,80 @@
+*PPD-Adobe: "4.3"
+*%%Title: "Niimbot B1 Pro"
+*FormatVersion: "4.3"
+*FileVersion: "1.0"
+*LanguageVersion: German
+*LanguageEncoding: ISOLatin1
+*PCFileName: "NIIMBOTB1PRO.PPD"
+*Manufacturer: "Niimbot"
+*Product: "(B1 Pro)"
+*cupsVersion: 2.0
+*cupsSNMPSupplies: False
+*cupsLanguages: "de"
+*ModelName: "Niimbot B1 Pro"
+*ShortNickName: "Niimbot B1 Pro"
+*NickName: "Niimbot B1 Pro"
+*PSVersion: "(3010.000) 0"
+*LanguageLevel: "3"
+*ColorDevice: False
+*DefaultColorSpace: Gray
+*FileSystem: False
+*Throughput: "1"
+*LandscapeOrientation: Plus90
+*TTRasterizer: Type42
+*cupsManualCopies: False
+*cupsFilter2: "application/pdf application/pdf 0 -"
+
+*OpenUI *PageSize/Labelgroesse: PickOne
+*OrderDependency: 10 AnySetup *PageSize
+*DefaultPageSize: Label50x30
+*PageSize Label30x20/30x20mm: ""
+*PageSize Label40x30/40x30mm: ""
+*PageSize Label50x30/50x30mm: ""
+*CloseUI: *PageSize
+
+*OpenUI *PageRegion/Labelgroesse: PickOne
+*OrderDependency: 10 AnySetup *PageRegion
+*DefaultPageRegion: Label50x30
+*PageRegion Label30x20/30x20mm: ""
+*PageRegion Label40x30/40x30mm: ""
+*PageRegion Label50x30/50x30mm: ""
+*CloseUI: *PageRegion
+
+*DefaultImageableArea: Label50x30
+*ImageableArea Label30x20/30x20mm: "0 0 85.04 56.69"
+*ImageableArea Label40x30/40x30mm: "0 0 113.39 85.04"
+*ImageableArea Label50x30/50x30mm: "0 0 141.73 85.04"
+
+*DefaultPaperDimension: Label50x30
+*PaperDimension Label30x20/30x20mm: "85.04 56.69"
+*PaperDimension Label40x30/40x30mm: "113.39 85.04"
+*PaperDimension Label50x30/50x30mm: "141.73 85.04"
+
+*VariablePaperSize: True
+*MaxMediaWidth: "283.5"
+*MinMediaWidth: "28.35"
+*MaxMediaHeight: "2834.6"
+*MinMediaHeight: "28.35"
+*ParamCustomPageSize Width: 1 points 28.35 283.5
+*ParamCustomPageSize Height: 2 points 28.35 2834.6
+*ParamCustomPageSize WidthOffset: 3 points 0 0
+*ParamCustomPageSize HeightOffset: 4 points 0 0
+*ParamCustomPageSize ParamOrientation: 5 int 0 0
+*CustomPageSize True: "pop pop pop <</PageSize [5 -2 roll] /ImagingBBox null>> setpagedevice"
+
+*OpenUI *niimDensity/Druckdichte: PickOne
+*OrderDependency: 10 AnySetup *niimDensity
+*DefaultniimDensity: 3
+*niimDensity 1/1 (hell): ""
+*niimDensity 2/2: ""
+*niimDensity 3/3 (normal): ""
+*niimDensity 4/4: ""
+*niimDensity 5/5 (dunkel): ""
+*CloseUI: *niimDensity
+
+*DefaultResolution: 300dpi
+*OpenUI *Resolution/Aufloesung: PickOne
+*OrderDependency: 10 AnySetup *Resolution
+*DefaultResolution: 300dpi
+*Resolution 300dpi/300 dpi: ""
+*CloseUI: *Resolution
