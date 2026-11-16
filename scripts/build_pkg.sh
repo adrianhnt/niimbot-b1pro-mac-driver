@@ -17,6 +17,9 @@ mkdir -p "$ROOT_DIR/dist"
 
 cp "$ROOT_DIR/src/niimbot_protocol.py" "$PKGROOT/usr/local/niimbot-cups/"
 cp "$ROOT_DIR/src/niimbot_backend.py" "$PKGROOT/usr/local/niimbot-cups/"
+mkdir -p "$PKGROOT/usr/local/niimbot-cups/vendor"
+cp -R "$ROOT_DIR/src/vendor/serial" "$PKGROOT/usr/local/niimbot-cups/vendor/serial"
+find "$PKGROOT/usr/local/niimbot-cups/vendor" -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 cp "$ROOT_DIR/NiimbotB1Pro.ppd" "$PKGROOT/Library/Printers/Niimbot/"
 
 # Versionsnummer in die Installer-Skripte einsetzen (fuer die

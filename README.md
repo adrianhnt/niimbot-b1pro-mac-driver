@@ -36,9 +36,10 @@ Get the latest `.pkg` installer from the **[Releases page](../../releases/latest
   USB-modem devices
 - Configurable print density (1–5) and a handful of common label sizes
   (30×20mm, 40×30mm, 50×30mm) plus a free custom page size
-- One-click `.pkg` installer: creates a dedicated Python venv, installs the
-  CUPS backend with correct ownership/permissions, registers the PPD and
-  printer queue automatically
+- One-click `.pkg` installer: installs the CUPS backend with correct
+  ownership/permissions and registers the PPD and printer queue
+  automatically — no venv, no `pip install`, nothing downloaded at install
+  time (see *Approach* below for why)
 - Install-time *and* print-time dependency checks for Homebrew/Poppler, with
   a native macOS alert dialog if something's missing
 - Standalone `niimbot_protocol.py` module (just `pyserial`, nothing printer-
@@ -62,11 +63,24 @@ believe the B1 Pro is an ordinary printer:
 App prints a PDF
   -> macOS/CUPS filter chain (hands the backend a ready PDF)
   -> niimbot_backend.py   (installed as /usr/libexec/cups/backend/niimbot)
-       -> pdftoppm (Poppler) rasterizes each page to PNG at 300dpi
-       -> Pillow loads the PNG
-       -> niimbot_protocol.py encodes it into the printer's native bitmap
-          commands and sends it over the USB-serial connection
+       -> pdftoppm -mono (Poppler) rasterizes each page to a PBM (P4)
+          bitmap at 300dpi — already exactly 1 bit/pixel, MSB-first
+       -> niimbot_protocol.py encodes those rows into the printer's native
+          bitmap commands and sends them over the USB-serial connection
 ```
+
+**Why no venv and no Pillow:** `cupsd` runs backends inside a sandbox
+("cups-exec") that denies `execve`/metadata access to interpreters and
+shared libraries outside standard system locations — confirmed directly via
+`log show` (`Sandbox: cups-exec deny(1) file-read-metadata
+/usr/local/.../venv/bin/python3`). A backend whose shebang points at a
+third-party venv interpreter, or that loads a compiled extension like
+Pillow's (which also showed up as "adhoc signed" / failing AMFI checks in
+the same logs), can silently fail to even start. The backend therefore uses
+only the system `/usr/bin/python3`, has `pdftoppm` do the 1-bit rasterizing
+instead of Pillow, and vendors pyserial's pure-Python source directly
+(`src/vendor/serial/`, BSD-3-Clause) instead of pip-installing it into a
+venv.
 
 The protocol itself was reconstructed primarily from the open-source
 [niimprint](https://github.com/AndBondStyle/niimprint) project and the
@@ -107,21 +121,22 @@ labels — rather than taken on faith.
 
 ## Reinstalling, updating, uninstalling
 
-Every install uses the same fixed paths (same venv, same backend file, same
-CUPS queue name), so running the installer multiple times never leaves
-duplicate copies behind — each run just overwrites the same files in place.
+Every install uses the same fixed paths (same backend file, same CUPS queue
+name), so running the installer multiple times never leaves duplicate copies
+behind — each run just overwrites the same files in place. (Versions up to
+1.3 also created a venv under `/usr/local/niimbot-cups/venv`; 1.4+ removes
+that automatically on update since it's no longer used.)
 
 The installer does track which version is currently installed
 (`/usr/local/niimbot-cups/VERSION`) and shows a dialog telling you what
 happened:
 - fresh install → "Version X.Y was installed"
-- same version already installed → it skips reinstalling anything (no venv
-  rebuild, no pip reinstall, no CUPS requery) and just tells you nothing
-  changed
+- same version already installed → it skips reinstalling anything (no CUPS
+  requery) and just tells you nothing changed
 - older version found → "Updated from X.Y to X.Z"
 
-To fully remove the driver (CUPS queue, backend, venv, PPD, and the
-installer receipt):
+To fully remove the driver (CUPS queue, backend, PPD, and the installer
+receipt):
 
 ```bash
 sudo ./scripts/uninstall.sh
@@ -153,6 +168,8 @@ sudo ./scripts/uninstall.sh
 - [niimprint](https://github.com/AndBondStyle/niimprint) (MIT) — protocol
   groundwork
 - [niim.blue](https://printers.niim.blue/) — community hardware/protocol wiki
+- [pySerial](https://github.com/pyserial/pyserial) (BSD-3-Clause) — vendored
+  directly, see `src/vendor/serial/LICENSE.txt`
 
 ## Disclaimer
 

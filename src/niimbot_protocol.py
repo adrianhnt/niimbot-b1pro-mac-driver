@@ -163,24 +163,23 @@ class PrinterClient:
         pkt = self._transceive(SET_QUANTITY, struct.pack(">H", n))
         return pkt is not None and bool(pkt.data[0])
 
-    def _encode_image(self, image):
-        from PIL import ImageOps
-
-        img = ImageOps.invert(image.convert("L")).convert("1")
-        for y in range(img.height):
-            row = [img.getpixel((x, y)) for x in range(img.width)]
-            bits = "".join("0" if p == 0 else "1" for p in row)
-            line_data = int(bits, 2).to_bytes(math.ceil(img.width / 8), "big")
+    def _encode_rows(self, rows):
+        for y, row_bytes in enumerate(rows):
             header = struct.pack(">H3BB", y, 0, 0, 0, 1)
-            yield NiimbotPacket(0x85, header + line_data)
+            yield NiimbotPacket(0x85, header + row_bytes)
 
-    def print_image(self, image, density=3, label_type=1, quantity=1):
+    def print_raster(self, width, height, rows, density=3, label_type=1):
+        """Print height rows of already 1-bit-packed, MSB-first bitmap data
+        (1 = fire the thermal head / black pixel), each exactly
+        ceil(width/8) bytes long. No PIL/Pillow dependency - callers that
+        have a PBM (netpbm P4) file already have data in this exact layout.
+        """
         self.set_label_density(density)
         self.set_label_type(label_type)
         self.start_print()
         self.start_page_print()
-        self.set_dimension(image.height, image.width)
-        for pkt in self._encode_image(image):
+        self.set_dimension(height, width)
+        for pkt in self._encode_rows(rows):
             self._send(pkt)
         self.end_page_print()
         time.sleep(0.3)
@@ -189,3 +188,21 @@ class PrinterClient:
                 return True
             time.sleep(0.1)
         return False
+
+    def print_image(self, image, density=3, label_type=1, quantity=1):
+        """Convenience wrapper for callers that already have a PIL Image.
+        Needs Pillow installed (lazy import) - the CUPS backend itself does
+        not use this and has no Pillow dependency at all.
+        """
+        from PIL import ImageOps
+
+        img = ImageOps.invert(image.convert("L")).convert("1")
+        row_bytes = math.ceil(img.width / 8)
+
+        def rows():
+            for y in range(img.height):
+                row = [img.getpixel((x, y)) for x in range(img.width)]
+                bits = "".join("0" if p == 0 else "1" for p in row)
+                yield int(bits, 2).to_bytes(row_bytes, "big")
+
+        return self.print_raster(img.width, img.height, rows(), density, label_type)
