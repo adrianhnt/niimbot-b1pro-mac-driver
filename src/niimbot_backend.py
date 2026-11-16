@@ -7,6 +7,7 @@ reverse-engineered Niimbot serial protocol (niimbot_protocol.py).
 """
 import glob
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -119,7 +120,14 @@ def main():
             log("ERROR", f"pdftoppm fehlgeschlagen: {e.stderr.decode(errors='replace')}")
             return 1
 
-        pages = sorted(glob.glob(out_prefix + "*.png"))
+        def page_number(path):
+            m = re.search(r"-(\d+)\.png$", path)
+            return int(m.group(1)) if m else 0
+
+        # Numerisch statt alphabetisch sortieren: pdftoppm benennt Seiten je
+        # nach Version ohne führende Nullen (page-1, page-2, ..., page-10),
+        # was alphabetisch die Reihenfolge ab 10 Seiten durcheinanderbringt.
+        pages = sorted(glob.glob(out_prefix + "*.png"), key=page_number)
         if not pages:
             log("ERROR", "keine Seiten gerendert")
             return 1
